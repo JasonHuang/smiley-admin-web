@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Card, Button, Table, Switch, MessagePlugin } from 'tdesign-react';
-import { listCategories, toggleCategoryStatus, deleteCategory } from '../services/categories';
+import { Card, Button, Table, Switch, MessagePlugin, Input, Dialog } from 'tdesign-react';
+import { listCategories, toggleCategoryStatus, deleteCategory, createCategory } from '../services/categories';
 import type { Category } from '../services/categories';
 
 export default function Categories() {
   const [data, setData] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  // 新增分类弹窗状态
+  const [visible, setVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [sort, setSort] = useState<number | ''>('');
+  const [isActiveCreating, setIsActiveCreating] = useState<boolean>(true);
 
   const columns = [
     { colKey: 'name', title: '分类名' },
@@ -56,15 +62,85 @@ export default function Categories() {
     }
   }
 
+  function onCreate() {
+    setVisible(true);
+    setName('');
+    setDescription('');
+    setSort('');
+    setIsActiveCreating(true);
+  }
+
+  async function onSubmit() {
+    try {
+      const trimmedName = (name || '').trim();
+      if (!trimmedName) {
+        MessagePlugin.warning('请输入分类名');
+        return;
+      }
+      await createCategory({
+        name: trimmedName,
+        description,
+        sort: typeof sort === 'number' ? sort : undefined,
+        isActive: isActiveCreating,
+      });
+      MessagePlugin.success('创建成功');
+      setVisible(false);
+      fetch();
+    } catch (e: any) {
+      MessagePlugin.error(e?.message || '提交失败');
+    }
+  }
+
   useEffect(() => { fetch(); }, []);
 
   return (
     <Card title="分类管理" bordered>
       <div style={{ marginBottom: 12 }}>
-        <Button theme="primary" disabled>新增分类（稍后）</Button>
+        <Button theme="primary" onClick={onCreate}>新增分类</Button>
         <Button variant="outline" style={{ marginLeft: 8 }} onClick={fetch}>刷新</Button>
       </div>
       <Table columns={columns as any} data={data} rowKey="id" loading={loading} />
+
+      <Dialog
+        header="新增分类"
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onConfirm={onSubmit}
+      >
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div>
+            <div style={{ marginBottom: 6, color: 'var(--td-text-color-secondary)' }}>分类名</div>
+            <Input
+              value={name}
+              onChange={(v) => setName(typeof v === 'string' ? v : String((v as any)?.target?.value ?? ''))}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 6, color: 'var(--td-text-color-secondary)' }}>描述</div>
+            <Input
+              value={description}
+              onChange={(v) => setDescription(typeof v === 'string' ? v : String((v as any)?.target?.value ?? ''))}
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 6, color: 'var(--td-text-color-secondary)' }}>排序（可选）</div>
+            <Input
+              type="number"
+              value={typeof sort === 'number' ? String(sort) : ''}
+              onChange={(v) => {
+                const s = typeof v === 'string' ? v : String((v as any)?.target?.value ?? '');
+                const n = Number(s);
+                setSort(Number.isFinite(n) ? n : '');
+              }}
+              placeholder="数值越小越靠前"
+            />
+          </div>
+          <div>
+            <div style={{ marginBottom: 6, color: 'var(--td-text-color-secondary)' }}>启用</div>
+            <Switch size="small" value={isActiveCreating} onChange={setIsActiveCreating} />
+          </div>
+        </div>
+      </Dialog>
     </Card>
   );
 }

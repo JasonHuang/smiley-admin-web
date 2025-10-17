@@ -5,6 +5,7 @@ import { getAllSystemConfigs, saveSystemConfig } from '../services/systemConfig'
 export default function SystemConfig() {
   const [siteName, setSiteName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   useEffect(() => {
     let mounted = true;
@@ -14,6 +15,7 @@ export default function SystemConfig() {
         if (!mounted) return;
         setSiteName(map.siteName || '');
         setContactEmail(map.contactEmail || '');
+        setAdminPassword(map.adminVerifyCode || '');
       } catch (e: any) {
         MessagePlugin.error(e?.message || '读取配置失败');
       }
@@ -25,7 +27,8 @@ export default function SystemConfig() {
     try {
       const ok1 = await saveSystemConfig('siteName', siteName || '');
       const ok2 = await saveSystemConfig('contactEmail', contactEmail || '');
-      if (ok1 && ok2) MessagePlugin.success('保存成功');
+      const ok3 = await saveSystemConfig('adminVerifyCode', adminPassword || '');
+      if (ok1 && ok2 && ok3) MessagePlugin.success('保存成功');
       else MessagePlugin.warning('部分配置保存失败');
     } catch (e: any) {
       MessagePlugin.error(e?.message || '保存失败');
@@ -49,6 +52,15 @@ export default function SystemConfig() {
             value={contactEmail}
             onChange={(v) => setContactEmail(typeof v === 'string' ? v : String((v as any)?.target?.value ?? ''))}
             placeholder="admin@example.com"
+          />
+        </div>
+        <div>
+          <div style={{ marginBottom: 8, color: 'var(--td-text-color-secondary)' }}>管理员密码</div>
+          <Input
+            type="password"
+            value={adminPassword}
+            onChange={(v) => setAdminPassword(typeof v === 'string' ? v : String((v as any)?.target?.value ?? ''))}
+            placeholder="用于后台登录校验"
           />
         </div>
         <div>
